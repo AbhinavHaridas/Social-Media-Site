@@ -1,6 +1,4 @@
-import { Configuration, Options } from "@mikro-orm/core";
 import { defineConfig } from "@mikro-orm/postgresql";
-import { PostgreSqlDriver } from "@mikro-orm/postgresql";
 import path from "path";
 import { Posts } from "./Entities/post";
 
