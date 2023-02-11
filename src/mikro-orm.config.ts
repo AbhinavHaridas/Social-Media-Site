@@ -1,6 +1,6 @@
 import { defineConfig } from "@mikro-orm/postgresql";
 import path from "path";
-import { Post } from "./Entities/post";
+import { Post } from "./Entities/Post";
 
 // Config for database
 export default defineConfig({
