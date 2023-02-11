@@ -8,7 +8,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "int",
+          "type": "serial",
           "unsigned": true,
           "autoincrement": true,
           "primary": true,
@@ -71,11 +71,11 @@
           "mappedType": "integer"
         }
       },
-      "name": "posts",
+      "name": "post",
       "schema": "public",
       "indexes": [
         {
-          "keyName": "posts_pkey",
+          "keyName": "post_pkey",
           "columnNames": [
             "id"
           ],

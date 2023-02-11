@@ -1,33 +1,43 @@
 import { title } from "process";
 import { Arg, Ctx, Mutation, Query, Resolver } from "type-graphql";
-import { Posts } from "../Entities/post";
+import { Post } from "../Entities/post";
 import { ContextType } from "../types";
 
 // POST API 
 @Resolver()
 export class PostResolver {
     // All posts
-    @Query(() => [Posts])
-    async getAllPosts(
+    @Query(() => [Post])
+    async getAllPost(
         @Ctx() {em}: ContextType,
     ) {
-      const posts = await em.find(Posts, {});   
+      const posts = await em.find(Post, {});   
       return posts;
     }
 
+    // Single post 
+    @Query(() => Post, { nullable: true })
+    async getPost(
+        @Arg("id", () => Number) id: number,
+        @Ctx() {em}: ContextType
+    ): Promise<Post | null> {
+        const post = await em.findOne(Post, {id}); 
+        return post; 
+    }
+
     // Create post
-    @Mutation(() => Posts)
+    @Mutation(() => Post)
     async createPost(
         @Arg("title", () => String) title: string,
         @Arg("description", () => String) description: string,
         @Arg("image", () => String) image: string,
         @Ctx() {em}: ContextType
-    ): Promise<Posts> {
-        const post = em.fork({}).create(Posts, {
+    ): Promise<Post> {
+        const post = em.fork({}).create(Post, {
             title: title,
             createdAt: "",
-            description: "",
-            image: "",
+            description: description,
+            image: image,
             upVotes: 0,
             downVotes: 0
         });

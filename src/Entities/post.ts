@@ -1,10 +1,10 @@
 import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
 import { Field, ObjectType } from "type-graphql";
 
-// Posts that the user can generate 
+// Post that the user can generate 
 @ObjectType()
 @Entity()
-export class Posts {
+export class Post {
     @Field(() => Number)
     @PrimaryKey({ type: 'number' })
     id!: number;
