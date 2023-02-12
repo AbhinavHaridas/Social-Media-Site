@@ -2,6 +2,7 @@ import { MaxLength } from "class-validator";
 import { Resolver, InputType, Mutation, Field, Arg, Ctx, Query, ObjectType } from "type-graphql";
 import { User } from "../Entities/User";
 import { ContextType } from "../types";
+import argon2 from "argon2";
 
 // Fields that the user needs to enter
 @InputType()
@@ -49,6 +50,9 @@ class UserResponse {
 
     @Field(() => User, { nullable: true })
     user?: User;
+
+    @Field(() => Boolean)
+    success!: boolean;
 }
 
 // USER API
@@ -59,10 +63,40 @@ export class UserResolver {
     async createUser(
         @Arg("details", () => UserInput) input: UserInput,
         @Ctx() { em }: ContextType
-    ): Promise<User> {
-        const user = em.fork({}).create(User, input);
+    ): Promise<UserResponse> {
+        const { username, password, nickname } = input;
+        const hashedPassword = await argon2.hash(password); 
+        const user = em.fork({}).create(User, {
+            username,
+            password: hashedPassword,
+            nickname
+        });
         await em.persistAndFlush(user);
-        return user;
+        return {
+            user,
+            success: true
+        }; 
+    }
+
+    // Delete a user 
+    @Mutation(() => UserResponse)
+    async deleteUser(
+        @Arg("id", () => Number) id: number,
+        @Ctx() { em }: ContextType
+    ): Promise<UserResponse> {
+       const user = await em.nativeDelete(User, { id });
+       if (!user) {
+        return {
+            error: {
+                field: "User",
+                message: "User was not found"
+            },
+            success: false 
+        };
+       }
+       return {
+            success: true
+       };
     }
 
     // Find all the posts
@@ -72,6 +106,42 @@ export class UserResolver {
     ): Promise<User[]> {
         const users = await em.find(User, {});
         return users;
+    }
+
+    // For user login
+    @Query(() => UserResponse)
+    async loginUser(
+        @Arg("input",() => UserInput) input: UserInput,
+        @Ctx() { em }: ContextType 
+    ): Promise<UserResponse> {
+        const { username, password } = input; 
+        const user = await em.findOne(User, { username });
+        if (!user) {
+            // User does not exist
+            return {
+                error: {
+                    field: "Username",
+                    message: "The username does not exist"
+                },
+                success: false
+            }
+        } 
+        const valid = await argon2.verify(password, user.password);
+        if (!valid) {
+            // Password is wrong
+            return {
+                error: {
+                    field: "Password",
+                    message: "The password is incorrect"
+                },
+                success: false
+            };
+        }
+        return {
+            // Right now the nickname does not matter
+            user,
+            success: true
+        }
     }
 
     // Find a user based on his details 
@@ -88,11 +158,13 @@ export class UserResolver {
                 error: {
                     field: "User",
                     message: "The User does not exist"
-                }
+                },
+                success: false
             };
         }
         return {
-           user
+           user,
+           success: true
         };
     }
 }
