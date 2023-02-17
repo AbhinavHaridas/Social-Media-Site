@@ -3,7 +3,7 @@ import { Arg, Ctx, Mutation, Query, Resolver, ObjectType, Field, InputType } fro
 import { Post } from "../Entities/Post";
 import { ContextType } from "../types";
 
-// User would be able to find the post if he or she is able to predict the title and description
+// User Input 
 @InputType()
 export class userInput {
     @MaxLength(100)
@@ -33,6 +33,12 @@ export class PostResponse {
 
     @Field(() => Post, { nullable: true })
     post?: Post;
+
+    @Field(() => [Post], { nullable: true })
+    posts?: Post[];
+
+    @Field(() => Boolean)
+    success!: boolean;
 }
 
 // POST API 
@@ -59,15 +65,39 @@ export class PostResolver {
                error: {
                 field: "id",
                 message: "The id does not exist"
-               } 
+               }, 
+               success: false 
             }
         }  
         return {
-            post 
+            post,
+            success: true 
         }
     }
 
-    // Query based on Title or Description
+   // Multiple Posts based on title
+    @Query(() => PostResponse)
+    async titlePosts(
+        @Arg("title", () => String) title: string,
+        @Ctx() { em }: ContextType
+    ): Promise<PostResponse> {
+        const posts = await em.find(Post, { title });
+        if (posts.length == 0) {
+            return {
+                error: {
+                    field: "Posts",
+                    message: "there are no posts with that title"
+                },
+                success: false
+            }
+        }
+        return {
+            posts,
+            success: true
+        }
+    }
+
+    //  Post based on Title or Description
     @Query(() => PostResponse)
     async findPost(
         @Arg("options", () => userInput) options: userInput,
@@ -81,11 +111,13 @@ export class PostResolver {
                     error: {
                         field: "title",
                         message: "The title is not present"
-                    }
+                    },
+                    success: false 
                 }
             }
             return {
-                post
+                post,
+                success: true
             };
         }
         if (!title) {
@@ -95,11 +127,13 @@ export class PostResolver {
                     error: {
                         field: "description",
                         message: "No post has that description"
-                    }
+                    },
+                    success: false 
                 } 
             }
             return {
-                post
+                post,
+                success: true
             };
         }
         const post = await em.findOne(Post, { title, description });
@@ -108,11 +142,13 @@ export class PostResolver {
                 error: {
                     field: "Title and Description",
                     message: "title and description have not matched"
-                }
+                },
+                success: false
             }
         }
         return {
-            post
+            post,
+            success: true
         };
     }
 
