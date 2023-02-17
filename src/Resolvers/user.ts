@@ -1,4 +1,4 @@
-import { MaxLength } from "class-validator";
+import { MaxLength } from "class-passwordValidator";
 import { Resolver, InputType, Mutation, Field, Arg, Ctx, Query, ObjectType } from "type-graphql";
 import { User } from "../Entities/User";
 import { ContextType } from "../types";
@@ -51,6 +51,9 @@ class UserResponse {
     @Field(() => User, { nullable: true })
     user?: User;
 
+    @Field(() => [User], { nullable: true })
+    users?: User[];
+
     @Field(() => Boolean)
     success!: boolean;
 }
@@ -58,7 +61,7 @@ class UserResponse {
 // USER API
 @Resolver()
 export class UserResolver {
-    // Create a user using the user input
+    // User Creation 
     @Mutation(() => User)
     async createUser(
         @Arg("details", () => UserInput) input: UserInput,
@@ -99,7 +102,7 @@ export class UserResolver {
        };
     }
 
-    // Find all the posts
+    // All Posts
     @Query(() => [User])
     async allUser(
         @Ctx() { em }: ContextType
@@ -108,7 +111,29 @@ export class UserResolver {
         return users;
     }
 
-    // For user login
+    // All Posts that the same username
+    @Query(() => UserResponse) 
+    async titleUsers(
+        @Arg("title", () => String) userInput: string,
+        @Ctx() { em }: ContextType
+    ): Promise<UserResponse> {
+        const users = await em.find(User, { username: userInput });
+        if (!users) {
+            return {
+                error: {
+                    field: "Username",
+                    message: "No users exist"
+                },
+                success: false
+            }
+        }
+        return {
+            users,
+            success: true
+        }
+    } 
+
+    // User login 
     @Query(() => UserResponse)
     async loginUser(
         @Arg("input",() => UserInput) input: UserInput,
@@ -117,7 +142,6 @@ export class UserResolver {
         const { username, password } = input; 
         const user = await em.findOne(User, { username });
         if (!user) {
-            // User does not exist
             return {
                 error: {
                     field: "Username",
@@ -126,9 +150,8 @@ export class UserResolver {
                 success: false
             }
         } 
-        const valid = await argon2.verify(password, user.password);
-        if (!valid) {
-            // Password is wrong
+        const passwordValid = await argon2.verify(password, user.password);
+        if (!passwordValid) {
             return {
                 error: {
                     field: "Password",
@@ -138,13 +161,12 @@ export class UserResolver {
             };
         }
         return {
-            // Right now the nickname does not matter
             user,
             success: true
         }
     }
 
-    // Find a user based on his details 
+    // Find User 
     @Query(() => UserResponse) 
     async findUser(
         @Arg("inputs", () => UserInput2) input: UserInput2,
@@ -153,7 +175,6 @@ export class UserResolver {
         const { username } = input;
         const user = await em.findOne(User, { username });
         if (!user) {
-            // If user does not exist it returns error
             return {
                 error: {
                     field: "User",
