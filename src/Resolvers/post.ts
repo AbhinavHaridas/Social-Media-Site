@@ -63,7 +63,7 @@ export class PostResolver {
         if (!post) {
             return {
                error: {
-                field: "id",
+                field: "ID ERROR",
                 message: "The id does not exist"
                }, 
                success: false 
@@ -85,7 +85,7 @@ export class PostResolver {
         if (posts.length == 0) {
             return {
                 error: {
-                    field: "Posts",
+                    field: "TITLE ERROR",
                     message: "there are no posts with that title"
                 },
                 success: false
@@ -109,7 +109,7 @@ export class PostResolver {
             if (!post) {
                 return {
                     error: {
-                        field: "title",
+                        field: "TITLE ERROR",
                         message: "The title is not present"
                     },
                     success: false 
@@ -125,7 +125,7 @@ export class PostResolver {
             if (!post) {
                 return {
                     error: {
-                        field: "description",
+                        field: "DESCRIPTION ERROR",
                         message: "No post has that description"
                     },
                     success: false 
@@ -140,7 +140,7 @@ export class PostResolver {
         if (!post) {
             return {
                 error: {
-                    field: "Title and Description",
+                    field: "TITLE DESCRIPTION ERROR",
                     message: "title and description have not matched"
                 },
                 success: false
@@ -170,5 +170,49 @@ export class PostResolver {
         });
         await em.persistAndFlush(post);
         return post;
+    }
+    
+    // Update post
+    @Mutation(() => PostResponse)
+    async updatePost(
+        @Arg("title_new_description", () => userInput) input: userInput,
+        @Ctx() { em }: ContextType
+    ): Promise<PostResponse> {
+        const { title, description } = input;
+        const post = await em.findOne(Post, { title }) 
+        if (!post) {
+            return {
+                error: {
+                    field: "POST TITLE ERROR",
+                    message: "There is no post with that title"
+                },
+                success: false
+            }
+        }
+        await em.nativeUpdate(Post, { title }, { description });
+        return {
+            success: true
+        }
     } 
+
+    // Delete post
+    @Mutation(() => PostResponse)
+    async deletePost(
+        @Arg("id", () => Number) id: number,
+        @Ctx() { em }: ContextType
+    ): Promise<PostResponse> {
+        const post = await em.nativeDelete(Post, { id });
+        if (!post) {
+            return {
+                error: {
+                    field: "POST ERROR",
+                    message: `There is no post with ID: ${id}`
+                },
+                success: false
+            }
+        }
+        return {
+            success: true
+        }
+    }
 }
