@@ -1,4 +1,4 @@
-import { MaxLength } from "class-passwordValidator";
+import { MaxLength } from "class-validator";
 import { Resolver, InputType, Mutation, Field, Arg, Ctx, Query, ObjectType } from "type-graphql";
 import { User } from "../Entities/User";
 import { ContextType } from "../types";
@@ -111,13 +111,13 @@ export class UserResolver {
         return users;
     }
 
-    // All Posts that the same username
+    // All Posts that have the same username
     @Query(() => UserResponse) 
     async titleUsers(
-        @Arg("title", () => String) userInput: string,
+        @Arg("username", () => String) username: string,
         @Ctx() { em }: ContextType
     ): Promise<UserResponse> {
-        const users = await em.find(User, { username: userInput });
+        const users = await em.find(User, { username });
         if (!users) {
             return {
                 error: {
