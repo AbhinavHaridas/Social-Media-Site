@@ -66,7 +66,7 @@ export class UserResolver {
     async createUser(
         @Arg("details", () => UserInput) input: UserInput,
         @Ctx() { em }: ContextType
-    ): Promise<UserResponse> {
+    ): Promise<User> {
         const { username, password, nickname } = input;
         const hashedPassword = await argon2.hash(password); 
         const user = em.fork({}).create(User, {
@@ -75,10 +75,7 @@ export class UserResolver {
             nickname
         });
         await em.persistAndFlush(user);
-        return {
-            user,
-            success: true
-        }; 
+        return user; 
     }
 
     // Delete a user 
@@ -137,7 +134,7 @@ export class UserResolver {
     @Query(() => UserResponse)
     async loginUser(
         @Arg("input",() => UserInput) input: UserInput,
-        @Ctx() { em }: ContextType 
+        @Ctx() { em, req }: ContextType 
     ): Promise<UserResponse> {
         const { username, password } = input; 
         const user = await em.findOne(User, { username });
@@ -150,7 +147,7 @@ export class UserResolver {
                 success: false
             }
         } 
-        const passwordValid = await argon2.verify(password, user.password);
+        const passwordValid = await argon2.verify(user.password, password);
         if (!passwordValid) {
             return {
                 error: {
@@ -159,6 +156,31 @@ export class UserResolver {
                 },
                 success: false
             };
+        }
+
+        req.session.userId = user.id;
+
+        return {
+            user,
+            success: true
+        }
+    }
+
+    // Displays Current User 
+    @Query(() => UserResponse)
+    async currentUser(
+        @Ctx() { req, em }: ContextType
+    ): Promise<UserResponse> {
+        const id = req.session.userId;
+        const user = await em.findOne(User, { id });
+        if (!user) {
+            return {
+                error: {
+                    field: "NO USER",
+                    message: "No user is currently logged in"
+                },
+                success: false
+            }
         }
         return {
             user,
